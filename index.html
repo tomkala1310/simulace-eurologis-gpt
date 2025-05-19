@@ -1,66 +1,93 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Optimalizace FVE</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulace FVE - Eurologis</title>
 
-    <!-- Tailwind CSS (pro styling) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- React + ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- React + ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
 
-    <!-- Babel (pro JSX podporu v prohlížeči) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.21.2/babel.min.js"></script>
 
-    <!-- Recharts (pro vizualizace) -->
-    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-900">
-    <div id="root" class="max-w-7xl mx-auto p-6"></div>
+<body class="bg-gray-100 min-h-screen">
+  <div id="root" class="p-4 max-w-7xl mx-auto"></div>
 
-    <!-- Logika aplikace -->
-    <script type="text/babel">
-        const { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } = Recharts;
+  <!-- Recharts loaded async to fix availability issues -->
+  <script type="text/javascript">
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
 
-        const App = () => {
-            const data = [
-                { name: 'Vlastní spotřeba', value: 1213180, color: '#4CAF50' },
-                { name: 'Přetoky', value: 233898, color: '#2196F3' },
-                { name: 'Noční export', value: 21079, color: '#FF9800' }
-            ];
+    Promise.all([
+      loadScript('https://unpkg.com/recharts/umd/Recharts.min.js')
+    ]).then(() => {
+      const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } = window.Recharts;
+      const COLORS = ["#4CAF50", "#FF9800", "#2196F3", "#9C27B0"];
 
-            return (
-                <div className="bg-white p-6 rounded shadow">
-                    <h1 className="text-2xl font-bold mb-4">Roční bilance výroby FVE</h1>
-                    <div className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={data}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={120}
-                                    label
-                                >
-                                    {data.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip formatter={(value) => new Intl.NumberFormat('cs-CZ').format(value) + ' kWh'} />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            );
-        };
+      const generateData = () => [
+        { name: "Vlastní spotřeba", value: 1213180 },
+        { name: "Přímá těžba", value: 313865 },
+        { name: "BESS využití", value: 195678 },
+        { name: "Zbývající přetoky", value: 165000 }
+      ];
 
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
+      const Dashboard = () => {
+        const data = generateData();
+        const total = data.reduce((sum, d) => sum + d.value, 0);
+
+        return React.createElement("div", { className: "bg-white shadow p-6 rounded" },
+          React.createElement("h1", { className: "text-xl font-bold mb-4" }, "Simulace optimalizace FVE"),
+          React.createElement(ResponsiveContainer, { width: "100%", height: 400 },
+            React.createElement(PieChart, null,
+              React.createElement(Pie, {
+                dataKey: "value",
+                data: data,
+                cx: "50%",
+                cy: "50%",
+                outerRadius: 120,
+                label: ({ name, value }) => `${name}: ${Math.round((value/total)*100)}%`
+              },
+                data.map((entry, index) =>
+                  React.createElement(Cell, {
+                    key: `cell-${index}`,
+                    fill: COLORS[index % COLORS.length]
+                  })
+                )
+              ),
+              React.createElement(Tooltip, {
+                formatter: (value) => `${value.toLocaleString()} kWh`
+              }),
+              React.createElement(Legend, null)
+            )
+          )
+        );
+      };
+
+      ReactDOM.render(
+        React.createElement(Dashboard, null),
+        document.getElementById("root")
+      );
+    });
+  </script>
 </body>
-</html>
+</html> 
